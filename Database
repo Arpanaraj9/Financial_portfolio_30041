@@ -1,0 +1,138 @@
+-- =========================
+-- 1. USER PROFILE
+-- =========================
+CREATE TABLE Users (
+    user_id SERIAL PRIMARY KEY,  -- Unique identifier
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================
+-- 2. FINANCIAL ACCOUNTS
+-- =========================
+CREATE TABLE Accounts (
+    account_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    account_type VARCHAR(50) CHECK (account_type IN ('Brokerage', 'Retirement', 'Crypto Wallet', 'Savings')),
+    provider_name VARCHAR(100),  -- e.g., Zerodha, Coinbase, HDFC
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+
+-- =========================
+-- 3. ASSETS
+-- =========================
+CREATE TABLE Assets (
+    asset_id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
+    ticker_symbol VARCHAR(20) NOT NULL,   -- e.g., AAPL, BTC, BOND123
+    asset_class VARCHAR(50) CHECK (asset_class IN ('Equity', 'Fixed Income', 'Crypto', 'ETF', 'Commodity')),
+    purchase_date DATE NOT NULL,
+    shares NUMERIC(12,4) CHECK (shares >= 0),
+    cost_basis NUMERIC(12,2) CHECK (cost_basis >= 0), -- per share/unit price
+    FOREIGN KEY (account_id) REFERENCES Accounts(account_id)
+);
+
+-- =========================
+-- 4. MARKET DATA (to track real-time + historical values)
+-- =========================
+CREATE TABLE MarketData (
+    market_id SERIAL PRIMARY KEY,
+    asset_id INT NOT NULL,
+    price NUMERIC(12,2) CHECK (price >= 0),
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (asset_id) REFERENCES Assets(asset_id)
+);
+
+-- =========================
+-- 5. TRANSACTIONS (Buy, Sell, Dividend)
+-- =========================
+CREATE TABLE Transactions (
+    transaction_id SERIAL PRIMARY KEY,
+    asset_id INT NOT NULL,
+    transaction_type VARCHAR(20) CHECK (transaction_type IN ('BUY', 'SELL', 'DIVIDEND')),
+    transaction_date DATE NOT NULL,
+    shares NUMERIC(12,4) CHECK (shares >= 0),
+    amount NUMERIC(12,2) CHECK (amount >= 0), -- total amount for the transaction
+    FOREIGN KEY (asset_id) REFERENCES Assets(asset_id)
+);
+
+-- =========================
+-- 6. REPORTS (Optional table if you want to store generated reports)
+-- =========================
+CREATE TABLE Reports (
+    report_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+INSERT INTO Users (name, email) VALUES
+('Alex Johnson', 'alex.johnson@example.com'),
+('Sarah Lee', 'sarah.lee@example.com'),
+('Michael Chen', 'michael.chen@example.com');
+INSERT INTO Accounts (user_id, account_type, provider_name) VALUES
+(1, 'Brokerage', 'Zerodha'),
+(1, 'Retirement', 'Vanguard'),
+(1, 'Crypto Wallet', 'Coinbase'),
+(2, 'Brokerage', 'HDFC Securities'),
+(2, 'Retirement', 'Fidelity'),
+(3, 'Brokerage', 'Robinhood'),
+(3, 'Crypto Wallet', 'Binance');
+INSERT INTO Assets (account_id, ticker_symbol, asset_class, purchase_date, shares, cost_basis) VALUES
+(1, 'RELIANCE', 'Equity', '2023-01-15', 50.00, 2400.50),
+(1, 'TCS', 'Equity', '2023-02-20', 25.00, 3500.75),
+(2, 'VTSAX', 'ETF', '2022-05-10', 100.00, 105.25),
+(3, 'BTC', 'Crypto', '2023-03-01', 0.5, 25000.00),
+(3, 'ETH', 'Crypto', '2023-03-25', 2.0, 1800.00),
+(4, 'INFY', 'Equity', '2023-04-05', 75.00, 1500.25),
+(4, 'HDFCBANK', 'Equity', '2023-05-01', 120.00, 1650.10),
+(5, 'SPY', 'ETF', '2022-11-15', 50.00, 400.50),
+(5, 'BND', 'Fixed Income', '2023-01-20', 80.00, 85.75),
+(6, 'NVDA', 'Equity', '2023-06-01', 10.00, 420.00),
+(6, 'TSLA', 'Equity', '2023-06-15', 15.00, 250.00),
+(7, 'DOGE', 'Crypto', '2023-07-01', 1000.00, 0.07),
+(7, 'XRP', 'Crypto', '2023-07-10', 500.00, 0.55);
+INSERT INTO MarketData (asset_id, price) VALUES
+(1, 2450.75), -- RELIANCE
+(2, 3600.20), -- TCS
+(3, 110.50), -- VTSAX
+(4, 28000.00), -- BTC
+(5, 1950.00), -- ETH
+(6, 1520.00), -- INFY
+(7, 1680.50), -- HDFCBANK
+(8, 420.75), -- SPY
+(9, 84.90), -- BND
+(10, 435.50), -- NVDA
+(11, 265.25), -- TSLA
+(12, 0.08), -- DOGE
+(13, 0.60); -- XRP
+INSERT INTO Transactions (asset_id, transaction_type, transaction_date, shares, amount) VALUES
+(1, 'BUY', '2023-01-15', 50.00, 120025.00),
+(2, 'BUY', '2023-02-20', 25.00, 87518.75),
+(3, 'BUY', '2022-05-10', 100.00, 10525.00),
+(4, 'BUY', '2023-03-01', 0.5, 12500.00),
+(5, 'BUY', '2023-03-25', 2.0, 3600.00),
+(6, 'BUY', '2023-04-05', 75.00, 112518.75),
+(7, 'BUY', '2023-05-01', 120.00, 198012.00),
+(8, 'BUY', '2022-11-15', 50.00, 20025.00),
+(9, 'BUY', '2023-01-20', 80.00, 6860.00),
+(10, 'BUY', '2023-06-01', 10.00, 4200.00),
+(11, 'BUY', '2023-06-15', 15.00, 3750.00),
+(12, 'BUY', '2023-07-01', 1000.00, 70.00),
+(13, 'BUY', '2023-07-10', 500.00, 275.00),
+(1, 'SELL', '2023-07-20', 10.00, 24507.50),
+(2, 'DIVIDEND', '2023-07-25', 0.00, 50.00);
+INSERT INTO Reports (user_id, period_start, period_end) VALUES
+(1, '2023-01-01', '2023-03-31'),
+(1, '2023-04-01', '2023-06-30'),
+(2, '2023-04-01', '2023-06-30'),
+(3, '2023-06-01', '2023-08-31');
+Select * from Users;
+Select * from Accounts;
+Select * from Assets;
+Select * from MarketData;
+Select * from Transactions;
+Select * from Reports;
